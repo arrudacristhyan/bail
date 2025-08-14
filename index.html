@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Fiança</title>
+    <style>
+        :root {
+            --bg-color: #313338;
+            --primary-color: #5865F2;
+            --secondary-color: #4F545C;
+            --text-color: #DBDEE1;
+            --card-bg-color: #2B2D31;
+            --border-color: #404249;
+            --green-color: #2D7D46;
+            --red-color: #DA373C;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background-color: var(--card-bg-color);
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        h1, h2 {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+        .form-section {
+            margin-bottom: 25px;
+        }
+        #crime-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .crime-item {
+            display: flex;
+            align-items: center;
+        }
+        input[type="checkbox"], input[type="radio"] {
+            margin-right: 10px;
+        }
+        label {
+            cursor: pointer;
+        }
+        .radio-group label {
+            margin-right: 20px;
+        }
+        .player-id-input {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .btn:hover {
+            opacity: 0.85;
+        }
+        .btn-primary { background-color: var(--primary-color); }
+        .btn-secondary { background-color: var(--red-color); }
+
+        #results {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+        .embed {
+            background-color: var(--bg-color);
+            border-left: 4px solid #FF4500;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .embed-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 15px;
+        }
+        .embed-field {
+            margin-bottom: 12px;
+        }
+        .embed-field-name {
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+        .embed-field-value {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .btn-copy {
+            background-color: var(--green-color);
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Calculadora de Fiança e Pena</h1>
+
+        <div class="form-section">
+            <h2>ID do Jogador</h2>
+            <input type="text" id="player-id" class="player-id-input" placeholder="Digite o ID do jogador (ex: 12345)">
+        </div>
+
+        <div class="form-section">
+            <h2>Crimes Cometidos</h2>
+            <div id="crime-list"></div>
+        </div>
+
+        <div class="form-section radio-group">
+            <h2>Faixa de Renda</h2>
+            <label><input type="radio" name="income" value="Baixa"> Baixa</label>
+            <label><input type="radio" name="income" value="Média" checked> Média</label>
+            <label><input type="radio" name="income" value="Alta"> Alta</label>
+            <label><input type="radio" name="income" value="Muito Alta/Ilegal"> Muito Alta/Ilegal</label>
+        </div>
+
+        <div class="form-section radio-group">
+            <h2>Nível de Reincidência</h2>
+            <label><input type="radio" name="recidivism" value="Baixa" checked> Baixa</label>
+            <label><input type="radio" name="recidivism" value="Alta"> Alta</label>
+            <label><input type="radio" name="recidivism" value="Muito Alta"> Muito Alta</label>
+        </div>
+
+        <div class="action-buttons">
+            <button id="calculate-btn" class="btn btn-primary">Calcular</button>
+            <button id="clear-btn" class="btn btn-secondary">Limpar</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const bailTable = {
+                "Desacato": { "penalty": 25, "bail": 1500000, "inafiançável": false },
+                "Desobediência": { "penalty": 25, "bail": 1500000, "inafiançável": false },
+                "Dinheiro Sujo MENOS DE 20K": { "penalty": 25, "bail": 1500000, "inafiançável": false },
+                "Simulacro": { "penalty": 25, "bail": 1500000, "inafiançável": false },
+                "Dano ao patrimônio público": { "penalty": 30, "bail": 2000000, "inafiançável": false },
+                "Resistência à Prisão": { "penalty": 30, "bail": 4000000, "inafiançável": false },
+                "Furto": { "penalty": 30, "bail": 10000000, "inafiançável": false },
+                "Difamação": { "penalty": 30, "bail": 5000000, "inafiançável": false },
+                "Calúnia": { "penalty": 30, "bail": 5000000, "inafiançável": false },
+                "Fuga": { "penalty": 35, "bail": 6000000, "inafiançável": false },
+                "Direção Perigosa": { "penalty": 35, "bail": 9000000, "inafiançável": false },
+                "Dinheiro Sujo MAIS DE 20K": { "penalty": 35, "bail": 7500000, "inafiançável": false },
+                "Invasão a Propriedade Privada": { "penalty": 35, "bail": 7500000, "inafiançável": false },
+                "Roubo a civil (cidadão)": { "penalty": 40, "bail": 60000000, "inafiançável": false },
+                "Posse de itens ilegais": { "penalty": 40, "bail": 6000000, "inafiançável": false },
+                "Tentativa de Assalto": { "penalty": 40, "bail": 10000000, "inafiançável": false },
+                "Ameaça": { "penalty": 40, "bail": 14000000, "inafiançável": false },
+                "Excesso de Multa (30K)": { "penalty": 40, "bail": 16000000, "inafiançável": false },
+                "Porte Ilegal (Cassetete)": { "penalty": 40, "bail": 0, "inafiançável": true },
+                "Porte Ilegal (Arma Branca)": { "penalty": 40, "bail": 10000000, "inafiançável": false },
+                "Falsidade Ideológica": { "penalty": 45, "bail": 16000000, "inafiançável": false },
+                "Porte ilegal de munição": { "penalty": 45, "bail": 20000000, "inafiançável": false },
+                "Roubo a caixa eletrônico e lojinha": { "penalty": 50, "bail": 6000000, "inafiançável": false },
+                "Agressão": { "penalty": 50, "bail": 14000000, "inafiançável": false },
+                "Tráfico de Drogas": { "penalty": 50, "bail": 14000000, "inafiançável": false },
+                "Omissão de Socorro": { "penalty": 50, "bail": 24000000, "inafiançável": false },
+                "Porte Ilegal (Taser)": { "penalty": 50, "bail": 0, "inafiançável": true },
+                "Atropelamento": { "penalty": 50, "bail": 0, "inafiançável": true },
+                "Formação de Quadrilha": { "penalty": 55, "bail": 0, "inafiançável": true },
+                "Uso de Máscara e Traje Militar": { "penalty": 60, "bail": 20000000, "inafiançável": false },
+                "Invasão a Propriedade Militar": { "penalty": 60, "bail": 25000000, "inafiançável": false },
+                "Porte Ilegal (Pistola)": { "penalty": 60, "bail": 0, "inafiançável": true },
+                "Tentativa de Homicídio": { "penalty": 60, "bail": 0, "inafiançável": true },
+                "Suborno": { "penalty": 60, "bail": 0, "inafiançável": true },
+                "Roubo a Militar": { "penalty": 65, "bail": 0, "inafiançável": true },
+                "Sequestro": { "penalty": 65, "bail": 0, "inafiançável": true },
+                "Tráfico de Armas/Colete": { "penalty": 70, "bail": 25000000, "inafiançável": false },
+                "Porte Ilegal (Sub Metralhadora)": { "penalty": 70, "bail": 0, "inafiançável": true },
+                "Homicídio": { "penalty": 70, "bail": 0, "inafiançável": true },
+                "Perturbação Ordem Pública (HP)": { "penalty": 80, "bail": 0, "inafiançável": true },
+                "Roubo a Banco": { "penalty": 80, "bail": 0, "inafiançável": true },
+                "Latrocínio": { "penalty": 80, "bail": 0, "inafiançável": true },
+                "Porte Ilegal (Fuzil)": { "penalty": 80, "bail": 0, "inafiançável": true },
+                "Porte Ilegal (Calibre 12)": { "penalty": 85, "bail": 0, "inafiançável": true },
+                "Pena Juiz": { "penalty": 500, "bail": 0, "inafiançável": true }
+            };
+            const incomeBrackets = { 'Baixa': 0.5, 'Média': 1, 'Alta': 1.5, 'Muito Alta/Ilegal': 2 };
+
+            const crimeListDiv = document.getElementById('crime-list');
+            const calculateBtn = document.getElementById('calculate-btn');
+            const clearBtn = document.getElementById('clear-btn');
+            const resultsDiv = document.getElementById('results');
+            const playerIdInput = document.getElementById('player-id');
+
+            // Popula a lista de crimes com checkboxes
+            Object.keys(bailTable).sort().forEach(crime => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'crime-item';
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = crime;
+                checkbox.name = 'crimes';
+                checkbox.value = crime;
+                const label = document.createElement('label');
+                label.htmlFor = crime;
+                label.textContent = crime;
+                itemDiv.appendChild(checkbox);
+                itemDiv.appendChild(label);
+                crimeListDiv.appendChild(itemDiv);
+            });
+
+            clearBtn.addEventListener('click', () => {
+                document.querySelectorAll('input[name="crimes"]:checked').forEach(cb => cb.checked = false);
+                document.querySelector('input[name="income"][value="Média"]').checked = true;
+                document.querySelector('input[name="recidivism"][value="Baixa"]').checked = true;
+                playerIdInput.value = '';
+                resultsDiv.innerHTML = '';
+            });
+
+            calculateBtn.addEventListener('click', () => {
+                const selectedCrimes = Array.from(document.querySelectorAll('input[name="crimes"]:checked')).map(cb => cb.value);
+                const playerId = playerIdInput.value || 'Não informado';
+                const income = document.querySelector('input[name="income"]:checked').value;
+                const recidivismLevel = document.querySelector('input[name="recidivism"]:checked').value;
+
+                if (selectedCrimes.length === 0) {
+                    alert('Por favor, selecione pelo menos um crime.');
+                    return;
+                }
+
+                // --- Lógica de cálculo portada do bot ---
+                let totalPenalty = 0, totalBail = 0, bailablePenalty = 0;
+                let details = [], crimesToRecord = [...selectedCrimes];
+                const incomeMultiplier = incomeBrackets[income];
+                
+                const nonBailableCrimes = selectedCrimes.filter(crime => bailTable[crime]?.inafiançável === true);
+                const allCrimesAreBailable = nonBailableCrimes.length === 0;
+                const allCrimesAreNonBailable = nonBailableCrimes.length === selectedCrimes.length;
+
+                let instruction = "";
+
+                for (const crime of selectedCrimes) {
+                  const crimeData = bailTable[crime];
+                  if (!crimeData) continue;
+                  
+                  totalPenalty += crimeData.penalty;
+                  if (!crimeData.inafiançável) {
+                      const bail = crimeData.bail * incomeMultiplier;
+                      totalBail += bail;
+                      bailablePenalty += crimeData.penalty;
+                      details.push(`- ${crime}: R$ ${bail.toLocaleString('pt-BR')} (pena: ${crimeData.penalty} meses)`);
+                  } else {
+                      details.push(`- ${crime}: Inafiançável (pena: ${crimeData.penalty} meses)`);
+                  }
+                }
+                totalBail = Math.min(totalBail, 100000000);
+
+                if (allCrimesAreBailable) {
+                    instruction = `Liberar cidadão. Fazer boletim de ocorrência e cobrar fiança no valor de R$ ${totalBail.toLocaleString('pt-BR')}.`;
+                } else if (allCrimesAreNonBailable) {
+                    instruction = "Sem possibilidade de fiança ou redução. Efetuar prisão imediata.";
+                    totalBail = 0;
+                } else {
+                    let reductionRate = totalPenalty > 0 ? (bailablePenalty / totalPenalty) * 100 : 0;
+                    switch (recidivismLevel) {
+                        case 'Baixa':
+                            instruction = `Efetuar prisão apenas pelos crimes inafiançáveis. Cobrar fiança de R$ ${totalBail.toLocaleString('pt-BR')} para liberar dos crimes afiançáveis.`;
+                            crimesToRecord = nonBailableCrimes;
+                            break;
+                        case 'Alta':
+                            reductionRate = Math.min(reductionRate, 50);
+                            instruction = `Efetuar prisão. Cobrar fiança de R$ ${totalBail.toLocaleString('pt-BR')} para aplicar redução de ${reductionRate.toFixed(2)}% na pena total.`;
+                            break;
+                        case 'Muito Alta':
+                            reductionRate = Math.min(reductionRate, 20);
+                            instruction = `Efetuar prisão. Cobrar fiança de R$ ${totalBail.toLocaleString('pt-BR')} para aplicar a redução máxima permitida de ${reductionRate.toFixed(2)}% na pena total.`;
+                            break;
+                    }
+                }
+
+                const fichaText = `**MOTIVO:** ${crimesToRecord.join(', ')}\n**OBS:** Fiança afixada em R$ ${totalBail.toLocaleString('pt-BR')}. Reincidência: ${recidivismLevel}.`;
+                
+                // --- Renderiza o resultado em formato de embed ---
+                resultsDiv.innerHTML = `
+                    <div class="embed">
+                        <div class="embed-title">Cálculo de Fiança e Pena</div>
+                        <div class="embed-field">
+                            <div class="embed-field-name">Jogador ID</div>
+                            <div class="embed-field-value">${playerId}</div>
+                        </div>
+                        <div class="embed-field">
+                            <div class="embed-field-name">Nível de Reincidência</div>
+                            <div class="embed-field-value">${recidivismLevel}</div>
+                        </div>
+                        <div class="embed-field">
+                            <div class="embed-field-name">Faixa de Renda</div>
+                            <div class="embed-field-value">${income}</div>
+                        </div>
+                        <div class="embed-field">
+                            <div class="embed-field-name">Crimes Cometidos</div>
+                            <div class="embed-field-value">${selectedCrimes.join(', ')}</div>
+                        </div>
+                        <div class="embed-field">
+                            <div class="embed-field-name">Detalhes do Cálculo</div>
+                            <div class="embed-field-value">${details.join('\n')}</div>
+                        </div>
+                        <div class="embed-field">
+                            <div class="embed-field-name">Valor Total da Fiança (para redução)</div>
+                            <div class="embed-field-value">R$ ${totalBail.toLocaleString('pt-BR')}</div>
+                        </div>
+                        <div class="embed-field">
+                            <div class="embed-field-name">Pena Total (sem fiança)</div>
+                            <div class="embed-field-value">${totalPenalty} meses</div>
+                        </div>
+                        <div class="embed-field">
+                            <div class="embed-field-name">Instrução para o Policial</div>
+                            <div class="embed-field-value"><strong>${instruction}</strong></div>
+                        </div>
+                        <button id="copy-ficha-btn" class="btn btn-copy">Copiar para Ficha</button>
+                    </div>
+                `;
+
+                document.getElementById('copy-ficha-btn').addEventListener('click', (e) => {
+                    navigator.clipboard.writeText(fichaText).then(() => {
+                        e.target.textContent = 'Copiado!';
+                        setTimeout(() => e.target.textContent = 'Copiar para Ficha', 2000);
+                    }).catch(err => {
+                        alert('Erro ao copiar: ' + err);
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>
